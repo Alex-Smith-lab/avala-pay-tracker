@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Avala Batch Payment Report",
-  "version": "1.0.0",
-  "description": "Automatically tracks Avala upcoming payment batches and totals by delivery age.",
+  "version": "1.1.0",
+  "description": "Reads upcoming Avala payment batches and calculates delivery-age totals.",
   "permissions": [
     "storage",
     "tabs",
@@ -17,7 +17,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://pay.avala.ai/dashboard*"
+        "https://pay.avala.ai/*"
       ],
       "js": [
         "content.js"
