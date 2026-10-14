@@ -1,51 +1,50 @@
+
 (() => {
   "use strict";
 
   const DATA_KEY = "avalaPayTrackerData";
   const THEME_KEY = "avalaPayTrackerTheme";
-
-  let allBatches = [];
-  let lastScan = null;
-
   const $ = id => document.getElementById(id);
 
-  const money = value =>
-    new Intl.NumberFormat("en-US", {
+  let batches = [];
+  let updatedAt = null;
+  let scanStatus = "waiting";
+
+  function money(value) {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD"
     }).format(value || 0);
+  }
 
-  function parseLocalDate(value) {
-    if (!value) return null;
-
-    const parts = value.split("-").map(Number);
-
-    if (parts.length !== 3 || parts.some(Number.isNaN)) {
+  function localDate(value) {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
       return null;
     }
 
-    return new Date(parts[0], parts[1] - 1, parts[2]);
+    const [year, month, day] = value.split("-").map(Number);
+    const date = new Date(year, month - 1, day);
+
+    return date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day
+      ? date
+      : null;
   }
 
-  function dayDifference(from, to) {
-    const a = new Date(from);
-    const b = new Date(to);
-
-    a.setHours(0, 0, 0, 0);
-    b.setHours(0, 0, 0, 0);
-
-    return Math.floor((b - a) / 86400000);
-  }
-
-  function ageFor(batch) {
-    const delivered = parseLocalDate(batch.deliveredDate);
-
+  function dayAge(batch) {
+    const delivered = localDate(batch.deliveredDate);
     if (!delivered) return null;
 
-    return Math.max(0, dayDifference(delivered, new Date()));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    delivered.setHours(0, 0, 0, 0);
+
+    return Math.floor((today - delivered) / 86400000);
   }
 
-  function groupFor(days) {
+  function group(days) {
     if (days <= 7) return "7";
     if (days <= 14) return "14";
     if (days <= 21) return "21";
@@ -61,60 +60,39 @@
     return "Over 30 days";
   }
 
-  function ageClass(days) {
-    if (days <= 7) return "fresh";
-    if (days <= 14) return "week2";
-    if (days <= 21) return "week3";
-    if (days <= 30) return "month";
-    return "old";
-  }
-
   function dateLabel(value) {
-    const date = parseLocalDate(value);
+    const date = localDate(value);
 
-    if (!date) return "—";
-
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric"
-    });
+    return date
+      ? date.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric"
+        })
+      : "—";
   }
 
   function paymentStatus(batch) {
-    if (!batch.payByDate) {
-      return {
-        label: "Not available",
-        className: "due"
-      };
+    const due = localDate(batch.payByDate);
+
+    if (!due) {
+      return { label: "Due date unavailable", className: "due" };
     }
 
-    const dueDate = parseLocalDate(batch.payByDate);
     const today = new Date();
-
     today.setHours(0, 0, 0, 0);
 
-    if (!dueDate) {
-      return {
-        label: "Not available",
-        className: "due"
-      };
-    }
-
-    const remaining = dayDifference(today, dueDate);
+    const remaining = Math.round((due - today) / 86400000);
 
     if (remaining < 0) {
       return {
-        label: `Overdue ${Math.abs(remaining)}d`,
+        label: `Overdue ${Math.abs(remaining)} days`,
         className: "overdue"
       };
     }
 
     if (remaining === 0) {
-      return {
-        label: "Due today",
-        className: "due"
-      };
+      return { label: "Due today", className: "due" };
     }
 
     return {
@@ -123,189 +101,147 @@
     };
   }
 
-  function calculateTotals(batches) {
-    const totals = {
+  function totals() {
+    const result = {
       "7": { amount: 0, count: 0 },
       "14": { amount: 0, count: 0 },
       "21": { amount: 0, count: 0 },
       "30": { amount: 0, count: 0 },
-      "over30": { amount: 0, count: 0 },
+      over30: { amount: 0, count: 0 },
       grand: { amount: 0, count: 0 }
     };
 
     for (const batch of batches) {
-      const age = ageFor(batch);
+      const age = dayAge(batch);
 
-      if (age === null) continue;
+      // Future delivery dates and invalid dates should
+      // not be silently counted as zero-day batches.
+      if (age === null || age < 0) continue;
 
-      const group = groupFor(age);
+      const key = group(age);
+      const amount = Number(batch.amount) || 0;
 
-      totals[group].amount += Number(batch.amount) || 0;
-      totals[group].count += 1;
+      result[key].amount += amount;
+      result[key].count++;
 
-      totals.grand.amount += Number(batch.amount) || 0;
-      totals.grand.count += 1;
+      result.grand.amount += amount;
+      result.grand.count++;
     }
 
-    return totals;
-  }
-
-  function setText(id, value) {
-    $(id).textContent = value;
+    return result;
   }
 
   function renderSummary() {
-    const totals = calculateTotals(allBatches);
+    const t = totals();
 
-    setText("grandTotal", money(totals.grand.amount));
-    setText("batchCount", totals.grand.count);
+    $("grandTotal").textContent = money(t.grand.amount);
+    $("batchCount").textContent =
+      `${t.grand.count} ${t.grand.count === 1 ? "batch" : "batches"}`;
 
     for (const key of ["7", "14", "21", "30", "over30"]) {
       const suffix = key === "over30" ? "Over30" : key;
 
-      setText(
-        `total${suffix}`,
-        money(totals[key].amount)
-      );
-
-      setText(
-        `count${suffix}`,
-        `${totals[key].count} ${
-          totals[key].count === 1 ? "batch" : "batches"
-        }`
-      );
+      $(`total${suffix}`).textContent = money(t[key].amount);
+      $(`count${suffix}`).textContent =
+        `${t[key].count} ${t[key].count === 1 ? "batch" : "batches"}`;
     }
   }
 
-  function getFilteredBatches() {
-    const search = $("searchInput").value
-      .trim()
-      .toLowerCase();
+  function addCell(row, value, className) {
+    const cell = document.createElement("td");
+    cell.textContent = value ?? "";
 
-    const filter = $("ageFilter").value;
+    if (className) cell.className = className;
 
-    return allBatches.filter(batch => {
-      const age = ageFor(batch);
+    row.appendChild(cell);
+    return cell;
+  }
 
-      if (age === null) return false;
-
-      const matchesSearch =
-        batch.batch.toLowerCase().includes(search);
-
-      const matchesAge =
-        filter === "all" || groupFor(age) === filter;
-
-      return matchesSearch && matchesAge;
-    });
+  function addPill(cell, label, className) {
+    const pill = document.createElement("span");
+    pill.className = `pill ${className}`;
+    pill.textContent = label;
+    cell.appendChild(pill);
   }
 
   function renderTable() {
-    const tbody = $("batchRows");
-    const batches = getFilteredBatches();
+    const body = $("batchRows");
+    body.replaceChildren();
 
-    tbody.replaceChildren();
+    const search = $("searchInput").value.trim().toLowerCase();
+    const filter = $("ageFilter").value;
 
-    if (!batches.length) {
+    const visible = batches.filter(batch => {
+      const age = dayAge(batch);
+
+      if (age === null || age < 0) return false;
+
+      return batch.batch.toLowerCase().includes(search) &&
+        (filter === "all" || group(age) === filter);
+    });
+
+    visible.sort((a, b) => dayAge(b) - dayAge(a));
+
+    if (!visible.length) {
       const row = document.createElement("tr");
       const cell = document.createElement("td");
 
       cell.colSpan = 7;
       cell.className = "empty";
-      cell.textContent = allBatches.length
-        ? "No batches match your search or age filter."
-        : "No upcoming batches found. Open Avala Payments and make sure the Upcoming Payments section is visible.";
+      cell.textContent = scanStatus === "empty"
+        ? "No upcoming batches detected. Confirm that the Upcoming Payments section is visible in Avala."
+        : batches.length
+          ? "No batches match the selected filters."
+          : "Open Avala Payments in another tab, sign in, and wait for the scan.";
 
       row.appendChild(cell);
-      tbody.appendChild(row);
-
-      setText("showingCount", "Showing 0 batches");
-      return;
+      body.appendChild(row);
     }
 
-    batches.sort((a, b) => {
-      return ageFor(b) - ageFor(a);
-    });
-
-    for (const batch of batches) {
-      const age = ageFor(batch);
-      const status = paymentStatus(batch);
+    for (const batch of visible) {
+      const age = dayAge(batch);
       const row = document.createElement("tr");
 
-      const values = [
-        batch.batch,
-        money(batch.amount),
-        dateLabel(batch.completedDate),
-        dateLabel(batch.deliveredDate),
-        dateLabel(batch.payByDate),
-        `${age} days`
-      ];
+      addCell(row, batch.batch);
+      addCell(row, money(batch.amount));
+      addCell(row, dateLabel(batch.completedDate));
+      addCell(row, dateLabel(batch.deliveredDate));
+      addCell(row, dateLabel(batch.payByDate));
 
-      values.forEach((value, index) => {
-        const cell = document.createElement("td");
+      const ageCell = document.createElement("td");
+      const ageClass = age <= 7 ? "fresh"
+        : age <= 14 ? "week2"
+        : age <= 21 ? "week3"
+        : age <= 30 ? "month" : "old";
 
-        if (index === 0) {
-          cell.className = "batch-name";
-        }
+      addPill(ageCell, `${age} days · ${groupLabel(age)}`, ageClass);
+      row.appendChild(ageCell);
 
-        if (index === 1) {
-          cell.className = "amount";
-        }
-
-        if (index === 5) {
-          const pill = document.createElement("span");
-
-          pill.className = `age-pill ${ageClass(age)}`;
-          pill.textContent = `${value} · ${groupLabel(age)}`;
-
-          cell.appendChild(pill);
-        } else {
-          cell.textContent = value || "—";
-        }
-
-        row.appendChild(cell);
-      });
-
+      const status = paymentStatus(batch);
       const statusCell = document.createElement("td");
-      const statusPill = document.createElement("span");
-
-      statusPill.className =
-        `payment-pill ${status.className}`;
-
-      statusPill.textContent = status.label;
-
-      statusCell.appendChild(statusPill);
+      addPill(statusCell, status.label, status.className);
       row.appendChild(statusCell);
-      tbody.appendChild(row);
+
+      body.appendChild(row);
     }
 
-    setText(
-      "showingCount",
-      `Showing ${batches.length} of ${allBatches.length} batches`
-    );
+    $("showingCount").textContent =
+      `Showing ${visible.length} of ${batches.length} detected batches`;
   }
 
   function renderConnection() {
-    const connection = $("connection");
+    const el = $("connection");
 
-    if (lastScan) {
-      connection.classList.add("connected");
-      connection.innerHTML =
-        '<span class="status-dot"></span> Data received';
+    if (updatedAt) {
+      el.textContent = scanStatus === "empty"
+        ? "Scan complete · No batches found"
+        : "Avala data received";
+
+      $("lastUpdated").textContent =
+        new Date(updatedAt).toLocaleString();
     } else {
-      connection.classList.remove("connected");
-      connection.innerHTML =
-        '<span class="status-dot"></span> Waiting for data';
-    }
-
-    if (lastScan) {
-      const date = new Date(lastScan);
-
-      setText(
-        "lastUpdated",
-        date.toLocaleString()
-      );
-    } else {
-      setText("lastUpdated", "Waiting for Avala");
+      el.textContent = "Waiting for Avala";
+      $("lastUpdated").textContent = "Waiting for first scan";
     }
   }
 
@@ -316,32 +252,41 @@
   }
 
   async function loadData() {
-    const stored = await chrome.storage.local.get(DATA_KEY);
-    const payload = stored[DATA_KEY];
+    try {
+      const saved = await chrome.storage.local.get(DATA_KEY);
+      const payload = saved[DATA_KEY];
 
-    if (!payload || !Array.isArray(payload.batches)) {
-      allBatches = [];
-      lastScan = null;
+      if (!payload) {
+        batches = [];
+        updatedAt = null;
+        scanStatus = "waiting";
+      } else {
+        batches = Array.isArray(payload.batches)
+          ? payload.batches
+          : [];
+
+        updatedAt = payload.updatedAt || null;
+        scanStatus = payload.scanStatus || "success";
+      }
+
       render();
-      return;
+    } catch (error) {
+      console.error("Unable to load tracker data:", error);
+      $("connection").textContent = "Unable to load data";
     }
-
-    allBatches = payload.batches;
-    lastScan = payload.updatedAt || null;
-
-    render();
   }
 
-  function buildSpreadsheetText() {
-    const totals = calculateTotals(allBatches);
+  function spreadsheetExport() {
+    const t = totals();
 
     const rows = [
       ["AVALA PAY TRACKER"],
-      ["Exported at", new Date().toLocaleString()],
+      ["Exported", new Date().toLocaleString()],
+      ["Source", "Upcoming Payments"],
       [],
       [
         "Batch ID",
-        "Amount (USD)",
+        "Amount USD",
         "Completed Date",
         "Delivered Date",
         "Pay By",
@@ -351,9 +296,10 @@
       ]
     ];
 
-    for (const batch of allBatches) {
-      const age = ageFor(batch);
-      const status = paymentStatus(batch);
+    for (const batch of batches) {
+      const age = dayAge(batch);
+
+      if (age === null || age < 0) continue;
 
       rows.push([
         batch.batch,
@@ -361,94 +307,75 @@
         batch.completedDate || "",
         batch.deliveredDate || "",
         batch.payByDate || "",
-        age === null ? "" : age,
-        age === null ? "" : groupLabel(age),
-        status.label
+        age,
+        groupLabel(age),
+        paymentStatus(batch).label
       ]);
     }
 
     rows.push([]);
     rows.push(["TOTALS BY DELIVERY AGE"]);
-    rows.push(["Age Group", "Batch Count", "Total Amount (USD)"]);
+    rows.push(["Age Group", "Batch Count", "Total USD"]);
 
-    const groups = [
+    for (const [label, key] of [
       ["0–7 days", "7"],
       ["8–14 days", "14"],
       ["15–21 days", "21"],
       ["22–30 days", "30"],
       ["Over 30 days", "over30"]
-    ];
-
-    for (const [label, key] of groups) {
+    ]) {
       rows.push([
         label,
-        totals[key].count,
-        totals[key].amount.toFixed(2)
+        t[key].count,
+        t[key].amount.toFixed(2)
       ]);
     }
 
     rows.push([
       "GRAND TOTAL",
-      totals.grand.count,
-      totals.grand.amount.toFixed(2)
+      t.grand.count,
+      t.grand.amount.toFixed(2)
     ]);
 
-    return rows
-      .map(row =>
-        row.map(value =>
-          String(value ?? "")
-            .replace(/\t/g, " ")
-            .replace(/\r?\n/g, " ")
-        ).join("\t")
-      )
-      .join("\n");
+    return rows.map(row =>
+      row.map(value =>
+        String(value ?? "")
+          .replace(/\t/g, " ")
+          .replace(/\r?\n/g, " ")
+      ).join("\t")
+    ).join("\n");
   }
 
   async function exportToSheets() {
-    const text = buildSpreadsheetText();
+    const content = spreadsheetExport();
 
     try {
-      await navigator.clipboard.writeText(text);
-    } catch (error) {
-      const textarea = document.createElement("textarea");
-
-      textarea.value = text;
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-
-      document.body.appendChild(textarea);
-      textarea.select();
+      await navigator.clipboard.writeText(content);
+    } catch {
+      const area = document.createElement("textarea");
+      area.value = content;
+      area.style.position = "fixed";
+      area.style.left = "-9999px";
+      document.body.appendChild(area);
+      area.select();
 
       const copied = document.execCommand("copy");
-      textarea.remove();
+      area.remove();
 
       if (!copied) {
-        alert("Could not copy the spreadsheet data. Please try again.");
+        alert("Copy failed. Please try again.");
         return;
       }
     }
 
-    window.open(
-      "https://sheets.new",
-      "_blank",
-      "noopener"
-    );
+    await chrome.tabs.create({
+      url: "https://sheets.new",
+      active: true
+    });
 
     alert(
-      "Batch data copied. In Google Sheets, click cell A1 and press Ctrl + V."
+      "Your batch data is copied. In Google Sheets, select cell A1 and press Ctrl + V."
     );
-  }
-
-  async function toggleTheme() {
-    document.body.classList.toggle("light");
-
-    const theme = document.body.classList.contains("light")
-      ? "light"
-      : "dark";
-
-    await chrome.storage.local.set({
-      [THEME_KEY]: theme
-    });
   }
 
   async function loadTheme() {
@@ -459,16 +386,27 @@
     }
   }
 
+  async function toggleTheme() {
+    document.body.classList.toggle("light");
+
+    const theme = document.body.classList.contains("light")
+      ? "light"
+      : "dark";
+
+    await chrome.storage.local.set({ [THEME_KEY]: theme });
+  }
+
   $("searchInput").addEventListener("input", renderTable);
   $("ageFilter").addEventListener("change", renderTable);
   $("refreshBtn").addEventListener("click", loadData);
-  $("exportBtn").addEventListener("click", exportToSheets);
   $("themeBtn").addEventListener("click", toggleTheme);
+  $("exportBtn").addEventListener("click", exportToSheets);
+  $("printBtn").addEventListener("click", () => window.print());
 
   $("closeBtn").addEventListener("click", async () => {
     const tab = await chrome.tabs.getCurrent();
 
-    if (tab && tab.id) {
+    if (tab?.id != null) {
       await chrome.tabs.remove(tab.id);
     }
   });
@@ -476,7 +414,7 @@
   $("minimizeBtn").addEventListener("click", async () => {
     const win = await chrome.windows.getCurrent();
 
-    if (win.id) {
+    if (win.id != null) {
       await chrome.windows.update(win.id, {
         state: "minimized"
       });
@@ -492,7 +430,6 @@
   loadTheme();
   loadData();
 
-  // Update the displayed age when a new day begins,
-  // even if the stored batch data has not changed.
+  // Refresh age calculations as the day changes.
   setInterval(render, 60000);
 })();
