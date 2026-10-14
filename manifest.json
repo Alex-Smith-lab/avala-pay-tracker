@@ -1,21 +1,18 @@
 {
   "manifest_version": 3,
-  "name": "Avala Pay Tracker",
-  "version": "1.1.0",
-  "description": "Track upcoming Avala payments, batch ages, and totals.",
+  "name": "Avala Batch Payment Report",
+  "version": "1.0.0",
+  "description": "Automatically tracks Avala upcoming payment batches and totals by delivery age.",
   "permissions": [
     "storage",
     "tabs",
-    "windows"
+    "clipboardWrite"
   ],
   "host_permissions": [
     "https://pay.avala.ai/*"
   ],
   "background": {
     "service_worker": "background.js"
-  },
-  "action": {
-    "default_title": "Open Avala Pay Tracker"
   },
   "content_scripts": [
     {
@@ -27,6 +24,8 @@
       ],
       "run_at": "document_idle"
     }
-  ]
+  ],
+  "action": {
+    "default_title": "Open Avala Batch Report"
+  }
 }
-
