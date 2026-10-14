@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Avala Pay Tracker</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <header>
+    <h1>Avala Pay Tracker</h1>
+    <p>Upcoming Payments Summary</p>
+    <button id="themeBtn">Switch Theme</button>
+  </header>
+
+  <main>
+    <section class="summary">
+      <h2>Grand Total</h2>
+      <strong id="grandTotal">$0.00</strong>
+      <p id="batchCount">0 batches</p>
+    </section>
+
+    <section>
+      <h2>Batch Records</h2>
+      <p>
+        This is the public dashboard interface.
+        To read your private Avala payment data, use
+        the Chrome extension version while logged in to Avala.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Batch ID</th>
+            <th>Amount</th>
+            <th>Completed</th>
+            <th>Delivered</th>
+            <th>Pay by</th>
+          </tr>
+        </thead>
+        <tbody id="batchRows">
+          <tr>
+            <td colspan="5">No batch data connected yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
