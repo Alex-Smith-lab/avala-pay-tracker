@@ -1,76 +1,48 @@
+"use strict";
+
 (() => {
-  "use strict";
+  if (window.__avalaBatchReaderStarted) return;
+  window.__avalaBatchReaderStarted = true;
 
-  if (window.__avalaPayTrackerInstalled) return;
-  window.__avalaPayTrackerInstalled = true;
+  const moneyPattern = /\$\s*([\d,]+(?:\.\d{1,2})?)/;
+  const batchPattern = /\b(?:v\d+-)?batch-[a-z0-9-]+\b/i;
 
-  const STORAGE_KEY = "avalaPayTrackerData";
-  const SCAN_INTERVAL = 15000;
-
-  const BATCH_RE =
-    /\b(?:v\d+-)?batch-[a-z0-9-]+\b/i;
-
-  const AMOUNT_RE =
-    /\$\s*[\d,]+(?:\.\d{1,2})?/;
-
-  let timer = null;
+  let scanTimer = null;
   let lastSignature = "";
-  let observerTimer = null;
 
-  function textOf(el) {
-    return String(el?.innerText || el?.textContent || "")
-      .replace(/\s+/g, " ")
-      .trim();
+  function clean(text) {
+    return (text || "").replace(/\s+/g, " ").trim();
   }
 
-  function findHeadingIndex(elements, heading) {
-    return elements.findIndex(el => {
-      if (el.children.length > 2) return false;
-      return new RegExp(
-        "^" + heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$",
-        "i"
-      ).test(textOf(el));
-    });
-  }
+  function parseDate(text) {
+    if (!text) return "";
 
-  function parseDate(text, label) {
-    const re = new RegExp(
-      label +
-      "\\s*:?\\s*" +
-      "([A-Za-z]{3,9}\\s+\\d{1,2}(?:,?\\s+\\d{4})?)",
-      "i"
+    const match = text.match(
+      /\b(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{1,2}(?:,?\s+\d{4})?\b/i
     );
 
-    const match = text.match(re);
     if (!match) return "";
 
-    const dateText = match[1].replace(
-      /([A-Za-z]{3,9}\s+\d{1,2})(\s+\d{4})$/,
-      "$1,$2"
-    );
+    const value = match[0];
+    const hasYear = /\b\d{4}\b/.test(value);
+    const year = hasYear
+      ? Number(value.match(/\b\d{4}\b/)[0])
+      : new Date().getFullYear();
 
-    const hasYear = /\b\d{4}\b/.test(dateText);
-    const now = new Date();
+    const normalized = value.replace(
+      /\b\d{4}\b/,
+      ""
+    ).replace(/,\s*$/, "").trim();
 
-    let year = now.getFullYear();
-    let date = new Date(
-      hasYear ? dateText : `${dateText}, ${year}`
-    );
+    const date = new Date(`${normalized}, ${year}`);
 
     if (Number.isNaN(date.getTime())) return "";
 
-    date.setHours(0, 0, 0, 0);
-
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
-
+    // A date without a year may refer to the previous year.
     if (!hasYear) {
-      const isPayBy = label.toLowerCase() === "pay by";
-
-      if (isPayBy && date < today) {
-        date.setFullYear(date.getFullYear() + 1);
-      } else if (!isPayBy && date > today) {
-        date.setFullYear(date.getFullYear() - 1);
+      const today = new Date();
+      if (date.getTime() > today.getTime() + 86400000) {
+        date.setFullYear(year - 1);
       }
     }
 
@@ -81,182 +53,175 @@
     ].join("-");
   }
 
-  function findUpcomingRange() {
-    const elements = Array.from(
-      document.querySelectorAll("body *")
+  function getSection() {
+    const candidates = [
+      ...document.querySelectorAll("h1,h2,h3,h4,h5,h6,[role='heading']")
+    ];
+
+    const upcoming = candidates.find(el =>
+      /^upcoming payments\b/i.test(clean(el.innerText))
     );
 
-    const start = findHeadingIndex(
-      elements,
-      "Upcoming Payments"
+    const recentlyPaid = candidates.find(el =>
+      /^recently paid\b/i.test(clean(el.innerText))
     );
 
-    if (start < 0) {
-      return { found: false, records: [] };
+    if (!upcoming || !recentlyPaid) return null;
+
+    // Find a shared container for both section headings.
+    let root = upcoming.parentElement;
+
+    while (root && !root.contains(recentlyPaid)) {
+      root = root.parentElement;
     }
 
-    let end = elements.length;
+    if (!root) return null;
 
-    for (let i = start + 1; i < elements.length; i++) {
-      const el = elements[i];
+    // Walk elements in document order and stop at Recently Paid.
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_ELEMENT
+    );
 
-      if (el.children.length > 2) continue;
+    const elements = [];
+    let node;
 
-      if (/^Recently Paid$/i.test(textOf(el))) {
-        end = i;
-        break;
-      }
+    while ((node = walker.nextNode())) {
+      if (node === recentlyPaid) break;
+      if (node === upcoming || upcoming.contains(node)) continue;
+      elements.push(node);
     }
 
-    return {
-      found: true,
-      elements: elements.slice(start + 1, end)
-    };
-  }
-
-  function extractBatches() {
-    const range = findUpcomingRange();
-
-    if (!range.found) {
-      return {
-        sectionFound: false,
-        batches: []
-      };
-    }
-
-    const best = new Map();
-
-    for (const el of range.elements) {
-      const text = textOf(el);
-
-      if (text.length > 2200) continue;
-
-      const batchMatch = text.match(BATCH_RE);
-      const amountMatch = text.match(AMOUNT_RE);
-
-      if (
-        !batchMatch ||
-        !amountMatch ||
-        !/Completed\s*:/i.test(text) ||
-        !/Delivered\s*:/i.test(text)
-      ) {
-        continue;
-      }
-
-      const batch = batchMatch[0];
-      const amount = Number(
-        amountMatch[0].replace(/[$,\s]/g, "")
-      );
-
-      const completedDate = parseDate(text, "Completed");
-      const deliveredDate = parseDate(text, "Delivered");
-      const payByDate = parseDate(text, "Pay by");
-
-      if (!Number.isFinite(amount) || !deliveredDate) {
-        continue;
-      }
-
-      const record = {
-        batch,
-        amount,
-        completedDate,
-        deliveredDate,
-        payByDate
-      };
-
-      const previous = best.get(batch);
-
-      // Prefer the smallest matching element that contains
-      // the entire batch record, reducing duplicate matches.
-      if (!previous || text.length < previous.textLength) {
-        best.set(batch, {
-          ...record,
-          textLength: text.length
+    // Restrict the scan to the subtree following Upcoming Payments.
+    const upcomingIndex = elements.indexOf(upcoming);
+    const sectionElements = upcomingIndex >= 0
+      ? elements.slice(upcomingIndex + 1)
+      : elements.filter(el => {
+          const position = upcoming.compareDocumentPosition(el);
+          return position & Node.DOCUMENT_POSITION_FOLLOWING;
         });
-      }
-    }
+
+    return { root, upcoming, recentlyPaid, sectionElements };
+  }
+
+  function getCardElements(sectionElements) {
+    const candidates = sectionElements.filter(el => {
+      const text = clean(el.innerText);
+      return batchPattern.test(text) &&
+        moneyPattern.test(text) &&
+        /\bCompleted\s*:/i.test(text) &&
+        /\bDelivered\s*:/i.test(text);
+    });
+
+    // Prefer the smallest complete element, not its ancestors.
+    return candidates.filter(el =>
+      !candidates.some(other =>
+        other !== el && el.contains(other)
+      )
+    );
+  }
+
+  function extractBatch(card) {
+    const text = clean(card.innerText);
+
+    const idMatch = text.match(batchPattern);
+    const amountMatch = text.match(moneyPattern);
+    const completedMatch = text.match(
+      /\bCompleted\s*:\s*(.*?)(?=\s*(?:→|->|›)\s*Delivered\s*:)/i
+    );
+    const deliveredMatch = text.match(
+      /\bDelivered\s*:\s*(.*?)(?=\s*(?:→|->|›)\s*Pay\s+by\s*:)/i
+    );
+    const payByMatch = text.match(
+      /\bPay\s+by\s*:\s*([A-Za-z]+\s+\d{1,2}(?:,?\s+\d{4})?)/i
+    );
+
+    if (!idMatch || !amountMatch) return null;
+
+    const completedText = completedMatch?.[1] || "";
+    const deliveredText = deliveredMatch?.[1] || "";
+
+    const completedDate = parseDate(completedText);
+    const deliveredDate = parseDate(deliveredText);
+    const payByDate = parseDate(payByMatch?.[1] || "");
 
     return {
-      sectionFound: true,
-      batches: Array.from(best.values()).map(item => {
-        delete item.textLength;
-        return item;
-      })
+      id: idMatch[0],
+      amount: Number(amountMatch[1].replace(/,/g, "")),
+      completedDate,
+      deliveredDate,
+      payByDate,
+      rawCompleted: clean(completedText),
+      rawDelivered: clean(deliveredText)
     };
   }
 
-  async function scan() {
-    try {
-      const result = extractBatches();
+  function scan() {
+    const section = getSection();
 
-      // Do not clear valid stored results when the section
-      // cannot be located during a page transition.
-      if (!result.sectionFound) return;
-
-      const batches = result.batches;
-
-      const signature = JSON.stringify(
-        batches
-          .map(b => ({
-            batch: b.batch,
-            amount: b.amount,
-            completedDate: b.completedDate,
-            deliveredDate: b.deliveredDate,
-            payByDate: b.payByDate
-          }))
-          .sort((a, b) => a.batch.localeCompare(b.batch))
+    if (!section) {
+      console.warn(
+        "[Avala Report] Could not locate both section headings. " +
+        "Keep Upcoming Payments and Recently Paid visible on the page."
       );
-
-      if (signature === lastSignature) return;
-      lastSignature = signature;
-
-      const payload = {
-        batches,
-        source: location.href,
-        updatedAt: new Date().toISOString(),
-        scanStatus: batches.length
-          ? "success"
-          : "empty"
-      };
-
-      await chrome.storage.local.set({
-        [STORAGE_KEY]: payload
-      });
-
-      console.info(
-        "[Avala Pay Tracker] Scan complete:",
-        batches.length,
-        "upcoming batches"
-      );
-    } catch (error) {
-      console.error("[Avala Pay Tracker]", error);
+      return;
     }
+
+    const cards = getCardElements(section.sectionElements);
+    const batches = cards
+      .map(extractBatch)
+      .filter(Boolean);
+
+    // Deduplicate IDs in case the dashboard uses nested card elements.
+    const unique = [...new Map(
+      batches.map(batch => [batch.id, batch])
+    ).values()];
+
+    const signature = JSON.stringify(unique);
+
+    if (signature === lastSignature) return;
+    lastSignature = signature;
+
+    chrome.runtime.sendMessage({
+      type: "AVALA_BATCH_UPDATE",
+      batches: unique
+    }, response => {
+      if (chrome.runtime.lastError) {
+        console.debug(
+          "[Avala Report] Waiting for extension connection."
+        );
+        return;
+      }
+
+      if (!response?.ok) {
+        console.warn("[Avala Report] Could not save scan.");
+      }
+    });
+
+    console.info(
+      `[Avala Report] Scanned ${unique.length} upcoming batches.`
+    );
   }
 
   function scheduleScan() {
-    clearTimeout(observerTimer);
-    observerTimer = setTimeout(scan, 800);
+    clearTimeout(scanTimer);
+    scanTimer = setTimeout(scan, 500);
   }
 
-  const observer = new MutationObserver(scheduleScan);
+  // Initial scan and automatic updates when the dashboard changes.
+  scan();
 
+  const observer = new MutationObserver(scheduleScan);
   observer.observe(document.documentElement, {
-    childList: true,
     subtree: true,
+    childList: true,
     characterData: true
   });
 
-  timer = setInterval(scan, SCAN_INTERVAL);
-
-  scan();
+  // Also rescan periodically in case the site updates data silently.
+  setInterval(scan, 15000);
 
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) scan();
-  });
-
-  window.addEventListener("pagehide", () => {
-    clearInterval(timer);
-    clearTimeout(observerTimer);
-    observer.disconnect();
+    if (!document.hidden) scheduleScan();
   });
 })();
