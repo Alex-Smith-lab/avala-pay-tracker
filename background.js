@@ -1,29 +1,34 @@
 "use strict";
 
-chrome.action.onClicked.addListener(async () => {
-  const dashboardUrl =
-    chrome.runtime.getURL("dashboard.html");
+chrome.action.onClicked.addListener(() => {
+  chrome.tabs.create({
+    url: chrome.runtime.getURL("index.html")
+  });
+});
 
-  const tabs = await chrome.tabs.query({});
-
-  const existing = tabs.find(tab =>
-    tab.url && tab.url.startsWith(dashboardUrl)
-  );
-
-  if (existing && existing.id != null) {
-    await chrome.tabs.update(existing.id, {
-      active: true
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message?.type === "AVALA_BATCH_UPDATE") {
+    chrome.storage.local.set({
+      avalaBatchReport: {
+        batches: Array.isArray(message.batches) ? message.batches : [],
+        updatedAt: new Date().toISOString(),
+        sourceTabId: sender.tab?.id ?? null
+      }
+    }).then(() => {
+      sendResponse({ ok: true });
+    }).catch(error => {
+      sendResponse({ ok: false, error: error.message });
     });
 
-    await chrome.windows.update(existing.windowId, {
-      focused: true
-    });
-
-    return;
+    return true;
   }
 
-  await chrome.tabs.create({
-    url: dashboardUrl,
-    active: true
-  });
+  if (message?.type === "CLOSE_REPORT_TAB") {
+    chrome.tabs.remove(sender.tab.id).then(
+      () => sendResponse({ ok: true }),
+      error => sendResponse({ ok: false, error: error.message })
+    );
+
+    return true;
+  }
 });
