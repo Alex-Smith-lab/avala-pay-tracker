@@ -1,28 +1,30 @@
+
+"use strict";
+
 chrome.action.onClicked.addListener(async () => {
-  const url = chrome.runtime.getURL("dashboard.html");
+  const dashboardUrl =
+    chrome.runtime.getURL("dashboard.html");
 
   const tabs = await chrome.tabs.query({});
 
-  const existing = tabs.find(
-    tab => tab.url && tab.url.startsWith(url)
+  const existing = tabs.find(tab =>
+    tab.url && tab.url.startsWith(dashboardUrl)
   );
 
-  if (existing && existing.id) {
+  if (existing && existing.id != null) {
     await chrome.tabs.update(existing.id, {
       active: true
     });
 
-    if (existing.windowId) {
-      await chrome.windows.update(existing.windowId, {
-        focused: true
-      });
-    }
+    await chrome.windows.update(existing.windowId, {
+      focused: true
+    });
 
     return;
   }
 
   await chrome.tabs.create({
-    url,
+    url: dashboardUrl,
     active: true
   });
 });
