@@ -1,149 +1,256 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Avala | Batch Payment Intelligence</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101828">
+<title>Avala Batch Intelligence</title>
 <style>
 :root {
   color-scheme: dark;
-  --bg:#0b1020; --panel:#141c2f; --card:#19243a;
-  --text:#edf2ff; --muted:#9baac5; --border:#2a3853;
-  --accent:#6d8cff; --green:#30d69a; --red:#ff6577;
-  --yellow:#ffc75e; --shadow:0 12px 32px #0002;
+  --bg:#0b1120;
+  --panel:#121c2e;
+  --card:#18243a;
+  --text:#edf3ff;
+  --muted:#a0aec5;
+  --border:#2a3954;
+  --accent:#718cff;
+  --green:#3bd6a0;
+  --yellow:#ffc65b;
+  --red:#ff657a;
+  --shadow:0 10px 30px rgba(0,0,0,.15);
 }
 body.light {
   color-scheme:light;
-  --bg:#f3f6fc; --panel:#ffffff; --card:#f7f9ff;
-  --text:#17233a; --muted:#66758e; --border:#dce3f0;
-  --accent:#365fe9; --green:#087f5b; --red:#d92d46;
-  --yellow:#946200; --shadow:0 10px 28px #26334a12;
+  --bg:#f3f6fc;
+  --panel:#fff;
+  --card:#f7f9ff;
+  --text:#17243b;
+  --muted:#63718a;
+  --border:#dce3ef;
+  --accent:#3e5ee9;
+  --green:#07845b;
+  --yellow:#946200;
+  --red:#d92d46;
+  --shadow:0 8px 24px rgba(25,40,70,.06);
 }
-* {box-sizing:border-box}
+* { box-sizing:border-box; }
 body {
-  margin:0;background:var(--bg);color:var(--text);
-  font:14px/1.5 Inter,system-ui,-apple-system,Segoe UI,sans-serif;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font:14px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;
 }
+button,a { font:inherit; }
 button {
-  border:1px solid var(--border);border-radius:9px;
-  padding:10px 13px;background:var(--card);
-  color:var(--text);cursor:pointer;font-weight:650;
+  border:1px solid var(--border);
+  border-radius:9px;
+  background:var(--card);
+  color:var(--text);
+  padding:10px 13px;
+  cursor:pointer;
+  font-weight:650;
 }
-button:hover {border-color:var(--accent)}
-button.primary {background:var(--accent);color:white;border-color:transparent}
-button:focus-visible {outline:2px solid var(--accent);outline-offset:3px}
+button:hover { border-color:var(--accent); }
+button:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:3px;
+}
+button.primary {
+  background:var(--accent);
+  color:white;
+  border-color:transparent;
+}
+a { color:var(--accent); }
 header {
-  display:flex;justify-content:space-between;align-items:center;
-  gap:15px;padding:20px clamp(16px,4vw,48px);
-  border-bottom:1px solid var(--border);background:var(--panel);
+  background:var(--panel);
+  border-bottom:1px solid var(--border);
+  padding:18px clamp(14px,4vw,42px);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
 }
-.brand {display:flex;align-items:center;gap:12px}
+.brand { display:flex;align-items:center;gap:12px;min-width:0; }
 .logo {
-  width:42px;height:42px;border-radius:12px;display:grid;
-  place-items:center;background:var(--accent);color:white;
-  font-size:20px;font-weight:900;
+  width:43px;height:43px;
+  display:grid;place-items:center;
+  background:var(--accent);color:white;
+  border-radius:12px;font-size:21px;font-weight:900;
+  flex-shrink:0;
 }
-h1 {font-size:20px;margin:0}
-h2 {font-size:17px;margin:0}
-h3 {font-size:14px;margin:0}
-p {margin:5px 0}
-.muted {color:var(--muted)}
-.small {font-size:12px}
-.actions {display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
-main {max-width:1500px;margin:auto;padding:26px clamp(14px,3vw,40px) 45px}
+h1 { font-size:20px;margin:0; }
+h2 { font-size:17px;margin:0; }
+h3 { font-size:14px;margin:0; }
+p { margin:5px 0; }
+.muted { color:var(--muted); }
+.small { font-size:12px; }
+.actions {
+  display:flex;flex-wrap:wrap;gap:8px;
+  align-items:center;justify-content:flex-end;
+}
+main {
+  max-width:1550px;
+  margin:auto;
+  padding:26px clamp(14px,3vw,40px) 42px;
+}
 .toolbar {
-  display:flex;justify-content:space-between;align-items:center;
-  gap:15px;flex-wrap:wrap;margin-bottom:22px
+  display:flex;justify-content:space-between;
+  align-items:center;gap:15px;flex-wrap:wrap;
+  margin-bottom:18px;
 }
-.status {display:flex;align-items:center;gap:8px;color:var(--muted)}
-.dot {width:9px;height:9px;background:var(--green);border-radius:50%}
-.dot.offline {background:var(--yellow)}
+.status {
+  display:flex;align-items:center;gap:8px;
+  flex-wrap:wrap;color:var(--muted);font-size:12px;
+  padding:11px 13px;border:1px solid var(--border);
+  border-radius:10px;background:var(--panel);
+}
+.dot { width:9px;height:9px;border-radius:50%;background:var(--green); }
+.dot.warning { background:var(--yellow); }
+.dot.error { background:var(--red); }
 .summary {
-  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:14px;margin-bottom:24px
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;margin:18px 0 26px;
 }
-.panel,.metric,.group {
-  border:1px solid var(--border);background:var(--panel);
-  border-radius:15px;box-shadow:var(--shadow)
+.metric,.group,.notice {
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:14px;
+  box-shadow:var(--shadow);
+  min-width:0;
 }
-.metric {padding:19px;min-width:0}
-.metric .label {color:var(--muted);font-size:12px;font-weight:700}
-.metric .number {font-size:clamp(22px,2.5vw,31px);font-weight:850;margin-top:7px;overflow-wrap:anywhere}
-.metric .foot {font-size:12px;color:var(--muted);margin-top:5px}
-.metric.highlight {border-color:var(--accent);background:var(--card)}
+.metric { padding:18px; }
+.metric.highlight {
+  border-color:var(--accent);
+  background:var(--card);
+}
+.metric-label {
+  color:var(--muted);font-size:11px;
+  font-weight:800;letter-spacing:.06em;
+}
+.metric-value {
+  font-size:clamp(23px,2.6vw,32px);
+  font-weight:850;line-height:1.25;
+  margin:8px 0;overflow-wrap:anywhere;
+}
+.metric-foot { color:var(--muted);font-size:12px; }
 .section-heading {
-  display:flex;justify-content:space-between;align-items:center;
-  gap:12px;margin:28px 0 13px;flex-wrap:wrap
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;margin:26px 0 13px;
 }
-.groups {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
-.group {overflow:hidden;min-width:0}
+.groups {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:15px;
+}
+.group { overflow:hidden; }
 .group-head {
-  display:flex;justify-content:space-between;align-items:center;
-  gap:10px;padding:17px;background:var(--card);
-  border-bottom:1px solid var(--border)
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:16px;background:var(--card);
+  border-bottom:1px solid var(--border);
 }
-.group-head .amount {font-size:21px;font-weight:850}
-.group-head .count {font-size:12px;color:var(--muted)}
-.tag {font-size:11px;padding:4px 8px;border-radius:6px;background:var(--bg);font-weight:750}
-.tag.green {color:var(--green)}
-.tag.red {color:var(--red)}
-.tag.yellow {color:var(--yellow)}
+.group-head .total { font-size:21px;font-weight:850; }
+.count { color:var(--muted);font-size:12px;margin-top:3px; }
+.pill {
+  display:inline-block;padding:4px 8px;border-radius:6px;
+  font-size:10px;font-weight:800;background:var(--bg);
+}
+.green { color:var(--green); }
+.yellow { color:var(--yellow); }
+.red { color:var(--red); }
 .batch {
-  padding:15px 17px;border-bottom:1px solid var(--border);
-  break-inside:avoid
+  padding:15px 16px;
+  border-bottom:1px solid var(--border);
+  break-inside:avoid;
 }
-.batch:last-child {border-bottom:0}
-.batch-top {display:flex;justify-content:space-between;gap:12px;align-items:start}
-.batch-id {font-weight:800;overflow-wrap:anywhere}
-.batch-amount {font-size:16px;font-weight:850;white-space:nowrap}
-.batch-meta {
+.batch:last-child { border-bottom:0; }
+.batch-top {
+  display:flex;align-items:flex-start;
+  justify-content:space-between;gap:12px;
+}
+.batch-id { font-weight:800;overflow-wrap:anywhere; }
+.batch-amount { font-size:16px;font-weight:850;white-space:nowrap; }
+.meta-grid {
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:8px;margin-top:12px
+  gap:8px;margin-top:12px;
 }
-.meta {background:var(--bg);padding:9px 10px;border-radius:8px;min-width:0}
-.meta span {display:block;color:var(--muted);font-size:11px}
-.meta strong {display:block;margin-top:3px;overflow-wrap:anywhere}
-.agebar {height:5px;border-radius:10px;background:var(--border);margin-top:13px;overflow:hidden}
-.agebar div {height:100%;background:var(--accent);border-radius:10px}
-.agebar .overdue {background:var(--red)}
-.empty {padding:23px;color:var(--muted);text-align:center}
-.note {
-  border:1px solid var(--border);padding:14px 16px;
-  border-radius:11px;color:var(--muted);margin-top:18px
+.meta {
+  background:var(--bg);border-radius:8px;
+  padding:9px 10px;min-width:0;
 }
-.error {color:var(--red)}
-footer {text-align:center;padding:24px;color:var(--muted);font-size:12px}
+.meta span {
+  display:block;font-size:11px;color:var(--muted);
+}
+.meta strong {
+  display:block;margin-top:3px;overflow-wrap:anywhere;
+}
+.progress {
+  height:5px;background:var(--border);
+  border-radius:10px;overflow:hidden;margin-top:12px;
+}
+.progress div {
+  height:100%;background:var(--accent);
+  border-radius:10px;
+}
+.progress div.old { background:var(--red); }
+.empty {
+  padding:23px;text-align:center;color:var(--muted);
+}
+.notice { padding:14px 16px;margin-top:16px; }
+.notice.error { color:var(--red); }
+.notice.warning { color:var(--yellow); }
+.notice.success { color:var(--green); }
+table { width:100%;border-collapse:collapse; }
+th,td {
+  padding:11px;text-align:left;
+  border-bottom:1px solid var(--border);
+}
+th { color:var(--muted);font-size:11px; }
+.table-wrap {
+  overflow-x:auto;border:1px solid var(--border);
+  border-radius:12px;background:var(--panel);
+}
+footer {
+  text-align:center;color:var(--muted);
+  font-size:12px;padding:22px;
+}
 #toast {
-  position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
-  padding:11px 17px;background:var(--text);color:var(--bg);
-  border-radius:10px;box-shadow:var(--shadow);display:none;z-index:10
+  position:fixed;bottom:18px;left:50%;
+  transform:translateX(-50%);z-index:100;
+  padding:12px 17px;border-radius:10px;
+  background:var(--text);color:var(--bg);
+  box-shadow:var(--shadow);display:none;
+  max-width:90vw;
 }
-body.minimized main {display:none}
-body.minimized header {border-bottom:0}
+body.minimized main { display:none; }
+body.minimized header { border-bottom:0; }
 @media(max-width:900px) {
-  .summary {grid-template-columns:repeat(2,minmax(0,1fr))}
-  .groups {grid-template-columns:1fr}
+  .summary { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .groups { grid-template-columns:1fr; }
 }
-@media(max-width:520px) {
-  header {align-items:flex-start}
-  .summary {grid-template-columns:1fr 1fr;gap:9px}
-  .metric {padding:13px}
-  .actions button {padding:8px;font-size:12px}
-  .batch-meta {grid-template-columns:1fr 1fr}
+@media(max-width:540px) {
+  header { align-items:flex-start; }
+  .summary { gap:9px; }
+  .metric { padding:12px; }
+  .actions button { padding:8px;font-size:12px; }
+  .meta-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 @media print {
   :root,body,body.light {
-    color-scheme:light;--bg:white;--panel:white;--card:#f4f6f9;
+    color-scheme:light;
+    --bg:#fff;--panel:#fff;--card:#f5f7fb;
     --text:#111827;--muted:#4b5563;--border:#d1d5db;
-    --accent:#365fe9;--green:#087f5b;--red:#c5223d;
-    --yellow:#946200;--shadow:none
+    --accent:#365fe9;--green:#087f5b;
+    --yellow:#946200;--red:#c5223d;--shadow:none;
   }
-  header .actions,.toolbar .actions,#toast {display:none!important}
-  body {background:white}
-  main {max-width:none;padding:12px}
-  .panel,.metric,.group {box-shadow:none}
-  .groups {grid-template-columns:repeat(2,minmax(0,1fr))}
-  .batch,.group {break-inside:avoid}
+  body { background:white; }
+  header .actions,.toolbar .actions,#toast { display:none!important; }
+  main { max-width:none;padding:12px; }
+  .metric,.group,.notice { box-shadow:none; }
+  .groups { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .batch,.group { break-inside:avoid; }
 }
 </style>
 </head>
@@ -153,7 +260,7 @@ body.minimized header {border-bottom:0}
     <div class="logo">A</div>
     <div>
       <h1>Avala Batch Intelligence</h1>
-      <p class="muted small">Upcoming payments · Delivery-age analysis</p>
+      <p class="muted small">Upcoming payments · Batch age analysis</p>
     </div>
   </div>
   <div class="actions">
@@ -164,112 +271,155 @@ body.minimized header {border-bottom:0}
   </div>
 </header>
 
-<main id="report">
+<main>
   <div class="toolbar">
     <div>
       <h2>Payment overview</h2>
-      <p class="muted">Batches are grouped by days since delivery, not completion.</p>
+      <p class="muted">Delivery age determines the group. Completed date is shown separately.</p>
     </div>
     <div class="actions">
-      <button id="refreshBtn">↻ Refresh report</button>
+      <button id="scanBtn">↻ Rescan dashboard</button>
+      <button id="refreshBtn">Refresh report</button>
       <button class="primary" id="copyBtn">Copy for Google Sheets</button>
       <button id="sheetsBtn">Open Google Sheets ↗</button>
     </div>
   </div>
 
-  <div class="status">
-    <span class="dot offline" id="statusDot"></span>
-    <span id="statusText">Waiting for the dashboard scan…</span>
+  <div class="status" aria-live="polite">
+    <span class="dot warning" id="statusDot"></span>
+    <span id="statusText">Waiting for dashboard scan</span>
     <span>·</span>
     <span id="updatedAt">No scan received yet</span>
   </div>
 
-  <section class="summary" style="margin-top:20px">
+  <section class="summary">
     <div class="metric highlight">
-      <div class="label">GRAND TOTAL · UPCOMING</div>
-      <div class="number" id="grandAmount">$0.00</div>
-      <div class="foot">Sum of unique eligible batches</div>
+      <div class="metric-label">GRAND TOTAL</div>
+      <div class="metric-value" id="grandAmount">$0.00</div>
+      <div class="metric-foot">All batches with readable delivery dates</div>
     </div>
     <div class="metric">
-      <div class="label">TOTAL BATCHES</div>
-      <div class="number" id="grandCount">0</div>
-      <div class="foot">Upcoming Payments only</div>
+      <div class="metric-label">TOTAL ELIGIBLE BATCHES</div>
+      <div class="metric-value" id="grandCount">0</div>
+      <div class="metric-foot">Counted once per batch ID</div>
     </div>
     <div class="metric">
-      <div class="label">OVER 4 WEEKS</div>
-      <div class="number" id="oldAmount">$0.00</div>
-      <div class="foot" id="oldCount">0 batches</div>
+      <div class="metric-label">OVER 4 WEEKS</div>
+      <div class="metric-value" id="oldAmount">$0.00</div>
+      <div class="metric-foot" id="oldCount">0 batches</div>
     </div>
     <div class="metric">
-      <div class="label">DATA QUALITY</div>
-      <div class="number" id="quality">—</div>
-      <div class="foot" id="qualityText">Waiting for data</div>
+      <div class="metric-label">DATE COMPLETENESS</div>
+      <div class="metric-value" id="quality">—</div>
+      <div class="metric-foot" id="qualityText">Waiting for data</div>
     </div>
   </section>
 
   <div class="section-heading">
     <div>
-      <h2>Batch breakdown</h2>
-      <p class="muted small">Each batch is counted in one age group only.</p>
+      <h2>Age-group totals</h2>
+      <p class="muted small">Each batch appears in exactly one group.</p>
     </div>
-    <div class="muted small">Currency: USD · Age calculated from delivery date</div>
+    <div class="muted small">Amounts displayed in USD</div>
   </div>
 
-  <section id="groups" class="groups"></section>
+  <section class="groups" id="groups"></section>
 
-  <div class="note" id="notice">
-    Open the Avala dashboard and keep it logged in. The extension reads
-    the Upcoming Payments section and updates this page when data changes.
-    No batches are fabricated when the reader cannot find the expected section.
-  </div>
   <div class="section-heading">
-    <h2>Export information</h2>
+    <div>
+      <h2>Grand-total reconciliation</h2>
+      <p class="muted small">Verify that the five group totals equal the grand total.</p>
+    </div>
   </div>
-  <div class="note">
-    <strong>Google Sheets:</strong> Choose “Copy for Google Sheets”, open
-    a spreadsheet, select cell A1, and paste. The export includes batch
-    details, age group, individual amounts, group totals, and the grand total.
-    To take a screenshot, use your browser's normal screenshot function or
-    Print / PDF.
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Age group</th>
+          <th>Days since delivery</th>
+          <th>Batch count</th>
+          <th>Amount total</th>
+        </tr>
+      </thead>
+      <tbody id="reconciliation"></tbody>
+      <tfoot id="reconciliationFoot"></tfoot>
+    </table>
+  </div>
+
+  <div id="notice" class="notice warning">
+    Open Avala Dashboard, sign in, and reload the page to start reading batches.
+  </div>
+
+  <div class="notice">
+    <strong>Google Sheets export:</strong>
+    Click Copy for Google Sheets, open a spreadsheet, select cell A1, and press
+    Ctrl+V. The export includes batch details, group totals, and the grand total.
+    Google Sheets does not automatically receive data merely by opening it;
+    paste the copied data, or configure authorized API access.
   </div>
 </main>
 
-<footer>Avala Batch Intelligence · Report generated locally in your browser</footer>
+<footer>
+  Avala Batch Intelligence · Locally generated report
+</footer>
 <div id="toast" role="status"></div>
 
 <script>
 "use strict";
 
 const $ = id => document.getElementById(id);
+
 const GROUPS = [
-  {key:"week1", label:"0–7 days · Within 1 week", min:0, max:7, tag:"green"},
-  {key:"week2", label:"8–14 days · 2 weeks", min:8, max:14, tag:"green"},
-  {key:"week3", label:"15–21 days · 3 weeks", min:15, max:21, tag:"yellow"},
-  {key:"week4", label:"22–28 days · 4 weeks", min:22, max:28, tag:"yellow"},
-  {key:"older", label:"29+ days · Over 4 weeks", min:29, max:Infinity, tag:"red"}
+  {key:"week1",label:"1 week",description:"0–7 days",min:0,max:7,style:"green"},
+  {key:"week2",label:"2 weeks",description:"8–14 days",min:8,max:14,style:"green"},
+  {key:"week3",label:"3 weeks",description:"15–21 days",min:15,max:21,style:"yellow"},
+  {key:"week4",label:"4 weeks",description:"22–28 days",min:22,max:28,style:"yellow"},
+  {key:"older",label:"Above 4 weeks",description:"29+ days",min:29,max:Infinity,style:"red"}
 ];
 
 let batches = [];
 let lastUpdated = null;
+let scanStatus = "";
+let scanMessage = "";
+let sourceUrl = "";
 let hasScanned = false;
+let toastTimer = null;
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  })[ch]);
+}
 
 function money(value) {
   return new Intl.NumberFormat("en-US", {
-    style:"currency", currency:"USD"
+    style:"currency",
+    currency:"USD"
   }).format(value || 0);
 }
 
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&":"&amp;", "<":"&lt;", ">":"&gt;",
-    '"':"&quot;", "'":"&#39;"
-  })[char]);
-}
-
 function parseISODate(value) {
-  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-  const date = new Date(value + "T00:00:00Z");
-  return Number.isNaN(date.getTime()) ? null : date;
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const parts = value.split("-").map(Number);
+  const date = new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));
+
+  if (
+    date.getUTCFullYear() !== parts[0] ||
+    date.getUTCMonth() !== parts[1]-1 ||
+    date.getUTCDate() !== parts[2]
+  ) {
+    return null;
+  }
+
+  return date;
 }
 
 function elapsedDays(dateString) {
@@ -278,47 +428,93 @@ function elapsedDays(dateString) {
 
   const now = new Date();
   const todayUTC = Date.UTC(
-    now.getFullYear(), now.getMonth(), now.getDate()
+    now.getFullYear(),now.getMonth(),now.getDate()
   );
-  return Math.max(0, Math.floor((todayUTC - date.getTime()) / 86400000));
-}
 
-function ageGroup(days) {
-  return GROUPS.find(group => days >= group.min && days <= group.max);
+  const days = Math.floor((todayUTC-date.getTime())/86400000);
+
+  // Do not silently treat future delivery dates as today's deliveries.
+  return days < 0 ? null : days;
 }
 
 function displayDate(value) {
   const date = parseISODate(value);
-  if (!date) return "Not detected";
+  if (!date) return "Not available";
+
   return date.toLocaleDateString("en-GB", {
-    day:"2-digit", month:"short", year:"numeric", timeZone:"UTC"
+    day:"2-digit",
+    month:"short",
+    year:"numeric",
+    timeZone:"UTC"
   });
 }
 
-function prepareData() {
-  const seen = new Set();
-  return batches
-    .filter(batch => {
-      if (!batch.id || seen.has(batch.id)) return false;
-      seen.add(batch.id);
-      return Number.isFinite(Number(batch.amount)) &&
-        Number(batch.amount) >= 0;
-    })
-    .map(batch => {
-      const days = elapsedDays(batch.deliveredDate);
-      return {
-        ...batch,
-        amount:Number(batch.amount),
-        days,
-        group:days === null ? null : ageGroup(days)
-      };
-    });
+function getGroup(days) {
+  return GROUPS.find(group =>
+    days >= group.min && days <= group.max
+  ) || null;
 }
 
-function makeCard(batch) {
-  const group = batch.group;
-  const progress = Math.min(100, (batch.days / 28) * 100);
-  const isOld = batch.days >= 29;
+function prepareData() {
+  const byId = new Map();
+
+  for (const raw of batches) {
+    if (!raw || typeof raw.id !== "string" || !raw.id.trim()) {
+      continue;
+    }
+
+    const id = raw.id.trim();
+    const amount = Number(raw.amount);
+
+    if (!Number.isFinite(amount) || amount < 0) continue;
+
+    // If a duplicate ID is present, keep the first valid record.
+    if (byId.has(id)) continue;
+
+    const days = elapsedDays(raw.deliveredDate);
+
+    byId.set(id,{
+      id,
+      amount,
+      completedDate:parseISODate(raw.completedDate)
+        ? raw.completedDate : "",
+      deliveredDate:parseISODate(raw.deliveredDate)
+        ? raw.deliveredDate : "",
+      payByDate:parseISODate(raw.payByDate)
+        ? raw.payByDate : "",
+      days,
+      group:days === null ? null : getGroup(days)
+    });
+  }
+
+  return [...byId.values()].sort((a,b) =>
+    a.id.localeCompare(b.id)
+  );
+}
+
+function batchCard(batch) {
+  const old = batch.days >= 29;
+  const width = Math.min(100,Math.max(0,batch.days/28*100));
+
+  let deadlineText = displayDate(batch.payByDate);
+  let deadlineClass = "muted";
+
+  if (batch.payByDate) {
+    const deadline = parseISODate(batch.payByDate);
+    const now = new Date();
+    const today = Date.UTC(
+      now.getFullYear(),now.getMonth(),now.getDate()
+    );
+    const difference = Math.floor((today-deadline.getTime())/86400000);
+
+    if (difference > 0) {
+      deadlineText += ` · ${difference} days past deadline`;
+      deadlineClass = "red";
+    } else if (difference === 0) {
+      deadlineText += " · Due today";
+      deadlineClass = "yellow";
+    }
+  }
 
   return `
     <article class="batch">
@@ -326,225 +522,377 @@ function makeCard(batch) {
         <div class="batch-id">${escapeHTML(batch.id)}</div>
         <div class="batch-amount">${money(batch.amount)}</div>
       </div>
-      <div class="batch-meta">
+
+      <div class="meta-grid">
         <div class="meta">
-          <span>Completed</span>
+          <span>Completed date</span>
           <strong>${displayDate(batch.completedDate)}</strong>
         </div>
         <div class="meta">
-          <span>Delivered</span>
+          <span>Delivered date</span>
           <strong>${displayDate(batch.deliveredDate)}</strong>
         </div>
         <div class="meta">
-          <span>Pay by</span>
-          <strong>${displayDate(batch.payByDate)}</strong>
+          <span>Payment deadline</span>
+          <strong class="${deadlineClass}">${escapeHTML(deadlineText)}</strong>
         </div>
         <div class="meta">
-          <span>Time since delivery</span>
-          <strong>${batch.days} day${batch.days === 1 ? "" : "s"}</strong>
+          <span>Elapsed delivery age</span>
+          <strong>${batch.days} day${batch.days===1?"":"s"}</strong>
         </div>
       </div>
-      <div class="agebar">
-        <div class="${isOld ? "overdue" : ""}" style="width:${progress}%"></div>
+
+      <div class="progress">
+        <div class="${old?"old":""}" style="width:${width}%"></div>
       </div>
-      <p class="small ${isOld ? "error" : "muted"}">
-        ${escapeHTML(group?.label || "Delivery date unavailable")}
+      <p class="small ${old?"red":"muted"}">
+        ${old?"Older than four weeks":escapeHTML(batch.group.label)}
       </p>
-    </article>`;
+    </article>
+  `;
 }
 
 function render() {
   const data = prepareData();
   const eligible = data.filter(batch => batch.group);
-  const missingDates = data.length - eligible.length;
-  const grandTotal = eligible.reduce((sum, batch) => sum + batch.amount, 0);
-  const older = eligible.filter(batch => batch.days >= 29);
-  const olderTotal = older.reduce((sum, batch) => sum + batch.amount, 0);
+  const excluded = data.filter(batch => !batch.group);
+
+  const grandTotal = eligible.reduce(
+    (sum,batch)=>sum+batch.amount,0
+  );
+
+  const older = eligible.filter(batch=>batch.group.key==="older");
+  const olderTotal = older.reduce(
+    (sum,batch)=>sum+batch.amount,0
+  );
 
   $("grandAmount").textContent = money(grandTotal);
   $("grandCount").textContent = eligible.length.toLocaleString();
   $("oldAmount").textContent = money(olderTotal);
-  $("oldCount").textContent = older.length + " batches";
+  $("oldCount").textContent = `${older.length} batches`;
 
-  const goodDates = data.filter(batch =>
+  const completeDates = data.filter(batch =>
     batch.completedDate && batch.deliveredDate
   ).length;
 
-  $("quality").textContent = data.length
-    ? Math.round((goodDates / data.length) * 100) + "%"
-    : "—";
+  const quality = data.length
+    ? Math.round(completeDates/data.length*100)
+    : null;
+
+  $("quality").textContent = quality===null ? "—" : `${quality}%`;
   $("qualityText").textContent = data.length
-    ? `${goodDates} of ${data.length} batches have completion and delivery dates`
-    : "No batches detected";
+    ? `${completeDates} of ${data.length} have both dates`
+    : "No batches received";
 
   $("groups").innerHTML = GROUPS.map(group => {
     const items = eligible
-      .filter(batch => batch.group.key === group.key)
-      .sort((a,b) => b.days - a.days);
+      .filter(batch=>batch.group.key===group.key)
+      .sort((a,b)=>b.days-a.days);
 
-    const total = items.reduce((sum, batch) => sum + batch.amount, 0);
+    const total = items.reduce((sum,batch)=>sum+batch.amount,0);
 
     return `
       <section class="group">
         <div class="group-head">
           <div>
-            <h3>${escapeHTML(group.label)}</h3>
-            <div class="count">${items.length} batch${items.length === 1 ? "" : "es"}</div>
+            <h3>${escapeHTML(group.label)} · ${escapeHTML(group.description)}</h3>
+            <div class="count">${items.length} batches</div>
           </div>
           <div style="text-align:right">
-            <div class="amount">${money(total)}</div>
-            <span class="tag ${group.tag}">GROUP TOTAL</span>
+            <div class="total">${money(total)}</div>
+            <span class="pill ${group.style}">GROUP TOTAL</span>
           </div>
         </div>
         ${items.length
-          ? items.map(makeCard).join("")
-          : '<div class="empty">No batches in this age group.</div>'}
-      </section>`;
+          ? items.map(batchCard).join("")
+          : '<div class="empty">No batches in this group.</div>'}
+      </section>
+    `;
   }).join("");
 
-  $("statusDot").classList.toggle("offline", !hasScanned);
-  $("statusText").textContent = hasScanned
-    ? `${data.length} unique batches received`
-    : "Waiting for dashboard scan…";
+  $("reconciliation").innerHTML = GROUPS.map(group => {
+    const items = eligible.filter(batch=>batch.group.key===group.key);
+    const total = items.reduce((sum,batch)=>sum+batch.amount,0);
+
+    return `
+      <tr>
+        <td>${escapeHTML(group.label)}</td>
+        <td>${escapeHTML(group.description)}</td>
+        <td>${items.length}</td>
+        <td>${money(total)}</td>
+      </tr>
+    `;
+  }).join("");
+
+  $("reconciliationFoot").innerHTML = `
+    <tr>
+      <th colspan="2">GRAND TOTAL</th>
+      <th>${eligible.length}</th>
+      <th>${money(grandTotal)}</th>
+    </tr>
+  `;
+
+  const dot = $("statusDot");
+  dot.className = "dot";
+
+  if (!hasScanned || scanStatus!=="success") {
+    dot.classList.add(scanStatus==="waiting"?"warning":"error");
+  }
+
+  $("statusText").textContent = !hasScanned
+    ? "Waiting for dashboard scan"
+    : scanStatus==="success"
+      ? `${data.length} unique batches received`
+      : scanMessage || "Reader needs attention";
 
   $("updatedAt").textContent = lastUpdated
-    ? "Last update: " + new Date(lastUpdated).toLocaleString()
+    ? `Updated ${new Date(lastUpdated).toLocaleString()}`
     : "No scan received yet";
 
-  $("notice").innerHTML = !hasScanned
-    ? 'No dashboard data received yet. Open <a href="https://pay.avala.ai/dashboard" target="_blank" rel="noopener">Avala Dashboard</a>, sign in, and reload it. Then return to this report.'
-    : missingDates
-      ? `<span class="error">${missingDates} batch(es) excluded from age-group totals because the delivery date could not be read.</span> Check the source dashboard and date format.`
-      : "All detected batches have a delivery date. The grand total equals the sum of the five group totals.";
+  const notice = $("notice");
+  notice.className = "notice";
+
+  if (!hasScanned) {
+    notice.classList.add("warning");
+    notice.textContent =
+      "No scan received. Open Avala Dashboard, sign in, reload it, then click Rescan dashboard.";
+  } else if (scanStatus!=="success") {
+    notice.classList.add("error");
+    notice.textContent =
+      scanMessage || "The reader could not identify the upcoming batch section.";
+  } else if (!data.length) {
+    notice.classList.add("warning");
+    notice.textContent =
+      "The reader did not find any complete batch records. Verify that the dashboard displays the expected headings and batch details.";
+  } else if (excluded.length) {
+    notice.classList.add("warning");
+    notice.textContent =
+      `${excluded.length} batch(es) excluded from age-group totals because their delivery date is missing, invalid, or in the future. Check the original dashboard before relying on the totals.`;
+  } else {
+    notice.classList.add("success");
+    notice.textContent =
+      "Data received. The five age-group totals reconcile to the grand total. Payment deadline status is calculated separately from delivery age.";
+  }
+
+  if (sourceUrl && !sourceUrl.startsWith("https://pay.avala.ai/")) {
+    console.warn("Unexpected data source:",sourceUrl);
+  }
 }
 
 function exportTSV() {
   const data = prepareData();
   const rows = [[
-    "Batch ID", "Amount (USD)", "Completed Date", "Delivered Date",
-    "Pay By Date", "Days Since Delivery", "Age Group"
+    "Batch ID",
+    "Amount (USD)",
+    "Completed Date",
+    "Delivered Date",
+    "Pay By Date",
+    "Days Since Delivery",
+    "Age Group",
+    "Record Status"
   ]];
 
   for (const batch of data) {
     rows.push([
-      batch.id, batch.amount.toFixed(2),
-      batch.completedDate || "", batch.deliveredDate || "",
-      batch.payByDate || "",
-      batch.days === null ? "" : batch.days,
-      batch.group?.label || "Delivery date unavailable"
+      batch.id,
+      batch.amount.toFixed(2),
+      batch.completedDate,
+      batch.deliveredDate,
+      batch.payByDate,
+      batch.days===null?"":batch.days,
+      batch.group?.label || "",
+      batch.group?"Included":"Excluded: invalid delivery date"
     ]);
   }
 
   rows.push([]);
   rows.push(["AGE GROUP TOTALS"]);
-  rows.push(["Age Group", "Batch Count", "Amount (USD)"]);
+  rows.push(["Group","Age Range","Batch Count","Total (USD)"]);
 
-  const eligible = data.filter(batch => batch.group);
+  const eligible = data.filter(batch=>batch.group);
+
   for (const group of GROUPS) {
-    const items = eligible.filter(batch => batch.group.key === group.key);
+    const items = eligible.filter(
+      batch=>batch.group.key===group.key
+    );
+
     rows.push([
       group.label,
+      group.description,
       items.length,
-      items.reduce((sum, batch) => sum + batch.amount, 0).toFixed(2)
+      items.reduce((sum,batch)=>sum+batch.amount,0).toFixed(2)
     ]);
   }
 
   rows.push([
     "GRAND TOTAL",
+    "All eligible groups",
     eligible.length,
-    eligible.reduce((sum, batch) => sum + batch.amount, 0).toFixed(2)
+    eligible.reduce((sum,batch)=>sum+batch.amount,0).toFixed(2)
   ]);
 
-  return rows.map(row => row.map(value =>
-    String(value ?? "").replace(/\t/g, " ").replace(/\r?\n/g, " ")
+  return rows.map(row=>row.map(value =>
+    String(value??"")
+      .replace(/\t/g," ")
+      .replace(/\r?\n/g," ")
   ).join("\t")).join("\n");
 }
 
 function toast(message) {
   $("toast").textContent = message;
   $("toast").style.display = "block";
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => {
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{
     $("toast").style.display = "none";
-  }, 3000);
+  },3500);
 }
 
 async function loadSavedData() {
   if (!globalThis.chrome?.storage?.local) {
-    $("statusText").textContent = "Open this page from the installed Chrome extension.";
+    hasScanned = false;
+    render();
+    $("notice").className = "notice warning";
+    $("notice").textContent =
+      "This report must be opened from the installed Chrome extension. GitHub Pages cannot directly read the logged-in Avala dashboard.";
     return;
   }
 
   try {
     const result = await chrome.storage.local.get("avalaBatchReport");
-    if (result.avalaBatchReport) {
-      batches = result.avalaBatchReport.batches || [];
-      lastUpdated = result.avalaBatchReport.updatedAt || null;
+    const report = result.avalaBatchReport;
+
+    if (report) {
+      batches = Array.isArray(report.batches)?report.batches:[];
+      lastUpdated = report.updatedAt || null;
+      scanStatus = report.scanStatus || "success";
+      scanMessage = report.scanMessage || "";
+      sourceUrl = report.sourceUrl || "";
       hasScanned = true;
     }
+
     render();
   } catch (error) {
     console.error(error);
-    toast("Could not load saved dashboard data.");
+    toast("Could not load the saved report.");
   }
 }
 
-$("refreshBtn").addEventListener("click", loadSavedData);
+async function requestRescan() {
+  if (!globalThis.chrome?.runtime?.sendMessage) {
+    toast("Open this report from the installed Chrome extension.");
+    return;
+  }
 
-$("copyBtn").addEventListener("click", async () => {
+  $("scanBtn").disabled = true;
+  $("scanBtn").textContent = "Scanning…";
+
+  chrome.runtime.sendMessage(
+    {type:"RESCAN_AVALA"},
+    response => {
+      $("scanBtn").disabled = false;
+      $("scanBtn").textContent = "↻ Rescan dashboard";
+
+      if (chrome.runtime.lastError) {
+        toast("Reload the Avala dashboard, then try again.");
+        return;
+      }
+
+      if (!response?.ok) {
+        toast(response?.error || "Unable to request a new scan.");
+        return;
+      }
+
+      toast("Rescan requested. The report will update when data arrives.");
+    }
+  );
+}
+
+$("scanBtn").addEventListener("click",requestRescan);
+$("refreshBtn").addEventListener("click",loadSavedData);
+
+$("copyBtn").addEventListener("click",async()=>{
   try {
-    await navigator.clipboard.writeText(exportTSV());
-    toast("Copied! Open Google Sheets, select A1, and paste.");
+    const content = exportTSV();
+
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(content);
+    } else {
+      const area = document.createElement("textarea");
+      area.value = content;
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+
+      const ok = document.execCommand("copy");
+      area.remove();
+
+      if (!ok) throw new Error("Clipboard copy was rejected.");
+    }
+
+    toast("Copied. Open Google Sheets, select A1, and paste.");
   } catch (error) {
-    toast("Copy failed. Open this report in the Chrome extension.");
+    console.error(error);
+    toast("Copy failed. Check browser clipboard permissions.");
   }
 });
 
-$("sheetsBtn").addEventListener("click", () => {
+$("sheetsBtn").addEventListener("click",()=>{
+  const url = "https://docs.google.com/spreadsheets/u/0/";
+
   if (globalThis.chrome?.tabs?.create) {
-    chrome.tabs.create({
-      url:"https://docs.google.com/spreadsheets/u/0/"
-    });
+    chrome.tabs.create({url});
   } else {
-    window.open(
-      "https://docs.google.com/spreadsheets/u/0/",
-      "_blank", "noopener"
-    );
+    window.open(url,"_blank","noopener");
   }
 });
 
-$("themeBtn").addEventListener("click", () => {
+$("themeBtn").addEventListener("click",()=>{
   document.body.classList.toggle("light");
-  $("themeBtn").textContent = document.body.classList.contains("light")
-    ? "☾ Dark theme" : "☀ Light theme";
+
+  $("themeBtn").textContent =
+    document.body.classList.contains("light")
+      ? "☾ Dark theme"
+      : "☀ Light theme";
 });
 
-$("minBtn").addEventListener("click", () => {
+$("minBtn").addEventListener("click",()=>{
   document.body.classList.toggle("minimized");
-  $("minBtn").textContent = document.body.classList.contains("minimized")
-    ? "＋ Restore" : "− Minimize";
+
+  $("minBtn").textContent =
+    document.body.classList.contains("minimized")
+      ? "＋ Restore"
+      : "− Minimize";
 });
 
-$("printBtn").addEventListener("click", () => window.print());
+$("printBtn").addEventListener("click",()=>window.print());
 
-$("closeBtn").addEventListener("click", () => {
+$("closeBtn").addEventListener("click",()=>{
   if (globalThis.chrome?.runtime?.sendMessage) {
-    chrome.runtime.sendMessage({type:"CLOSE_REPORT_TAB"});
+    chrome.runtime.sendMessage({type:"CLOSE_REPORT_TAB"},response=>{
+      if (chrome.runtime.lastError || !response?.ok) {
+        toast("Close this tab using the browser tab controls.");
+      }
+    });
   } else {
     window.close();
   }
 });
 
 if (globalThis.chrome?.storage?.onChanged) {
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area !== "local" || !changes.avalaBatchReport) return;
+  chrome.storage.onChanged.addListener((changes,area)=>{
+    if (area!=="local" || !changes.avalaBatchReport) return;
 
-    const next = changes.avalaBatchReport.newValue;
-    if (!next) return;
+    const report = changes.avalaBatchReport.newValue;
+    if (!report) return;
 
-    batches = next.batches || [];
-    lastUpdated = next.updatedAt || null;
+    batches = Array.isArray(report.batches)?report.batches:[];
+    lastUpdated = report.updatedAt || null;
+    scanStatus = report.scanStatus || "success";
+    scanMessage = report.scanMessage || "";
+    sourceUrl = report.sourceUrl || "";
     hasScanned = true;
+
     render();
   });
 }
