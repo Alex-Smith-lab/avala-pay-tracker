@@ -14,30 +14,35 @@
   const AMOUNT_RE =
     /\$\s*[\d,]+(?:\.\d{1,2})?/;
 
-  let scanTimer = null;
+  let timer = null;
   let lastSignature = "";
+  let observerTimer = null;
 
-  function cleanText(value) {
-    return String(value || "")
+  function textOf(el) {
+    return String(el?.innerText || el?.textContent || "")
       .replace(/\s+/g, " ")
       .trim();
   }
 
-  function parseDate(text, label) {
-    const escaped = label.replace(
-      /[.*+?^${}()|[\]\\]/g,
-      "\\$&"
-    );
+  function findHeadingIndex(elements, heading) {
+    return elements.findIndex(el => {
+      if (el.children.length > 2) return false;
+      return new RegExp(
+        "^" + heading.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$",
+        "i"
+      ).test(textOf(el));
+    });
+  }
 
+  function parseDate(text, label) {
     const re = new RegExp(
-      escaped +
+      label +
       "\\s*:?\\s*" +
       "([A-Za-z]{3,9}\\s+\\d{1,2}(?:,?\\s+\\d{4})?)",
       "i"
     );
 
     const match = text.match(re);
-
     if (!match) return "";
 
     const dateText = match[1].replace(
@@ -46,31 +51,30 @@
     );
 
     const hasYear = /\b\d{4}\b/.test(dateText);
-
     const now = new Date();
-    now.setHours(0, 0, 0, 0);
 
+    let year = now.getFullYear();
     let date = new Date(
-      hasYear
-        ? dateText
-        : `${dateText}, ${now.getFullYear()}`
+      hasYear ? dateText : `${dateText}, ${year}`
     );
 
     if (Number.isNaN(date.getTime())) return "";
 
     date.setHours(0, 0, 0, 0);
 
-    // If a year is not shown, infer the previous year
-    // when a completion or delivery date appears in the future.
-    if (
-      !hasYear &&
-      label.toLowerCase() !== "pay by" &&
-      date > now
-    ) {
-      date.setFullYear(date.getFullYear() - 1);
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+
+    if (!hasYear) {
+      const isPayBy = label.toLowerCase() === "pay by";
+
+      if (isPayBy && date < today) {
+        date.setFullYear(date.getFullYear() + 1);
+      } else if (!isPayBy && date > today) {
+        date.setFullYear(date.getFullYear() - 1);
+      }
     }
 
-    // Return a stable local calendar date: YYYY-MM-DD.
     return [
       date.getFullYear(),
       String(date.getMonth() + 1).padStart(2, "0"),
@@ -78,130 +82,78 @@
     ].join("-");
   }
 
-  function findSectionBoundary() {
+  function findUpcomingRange() {
     const elements = Array.from(
       document.querySelectorAll("body *")
     );
 
-    let upcomingIndex = -1;
-    let paidIndex = elements.length;
+    const start = findHeadingIndex(
+      elements,
+      "Upcoming Payments"
+    );
 
-    for (let i = 0; i < elements.length; i++) {
+    if (start < 0) {
+      return { found: false, records: [] };
+    }
+
+    let end = elements.length;
+
+    for (let i = start + 1; i < elements.length; i++) {
       const el = elements[i];
 
-      if (el.children.length > 3) continue;
+      if (el.children.length > 2) continue;
 
-      const text = cleanText(
-        el.innerText || el.textContent
-      );
-
-      if (/^Upcoming Payments$/i.test(text)) {
-        upcomingIndex = i;
-      }
-
-      if (
-        upcomingIndex >= 0 &&
-        /^Recently Paid$/i.test(text)
-      ) {
-        paidIndex = i;
+      if (/^Recently Paid$/i.test(textOf(el))) {
+        end = i;
         break;
       }
     }
 
-    if (upcomingIndex < 0) return null;
-
     return {
-      elements,
-      upcomingIndex,
-      paidIndex
+      found: true,
+      elements: elements.slice(start + 1, end)
     };
   }
 
-  function getCandidates() {
-    const section = findSectionBoundary();
+  function extractBatches() {
+    const range = findUpcomingRange();
 
-    if (!section) return [];
+    if (!range.found) {
+      return {
+        sectionFound: false,
+        batches: []
+      };
+    }
 
-    const {
-      elements,
-      upcomingIndex,
-      paidIndex
-    } = section;
+    const best = new Map();
 
-    const candidates = [];
+    for (const el of range.elements) {
+      const text = textOf(el);
 
-    for (
-      let i = upcomingIndex + 1;
-      i < paidIndex;
-      i++
-    ) {
-      const el = elements[i];
+      if (text.length > 2200) continue;
 
-      if (!el || !el.isConnected) continue;
-
-      const text = cleanText(
-        el.innerText || el.textContent
-      );
+      const batchMatch = text.match(BATCH_RE);
+      const amountMatch = text.match(AMOUNT_RE);
 
       if (
-        !BATCH_RE.test(text) ||
-        !AMOUNT_RE.test(text) ||
+        !batchMatch ||
+        !amountMatch ||
         !/Completed\s*:/i.test(text) ||
         !/Delivered\s*:/i.test(text)
       ) {
         continue;
       }
 
-      if (text.length > 1800) continue;
-
-      candidates.push({
-        element: el,
-        text
-      });
-    }
-
-    return candidates;
-  }
-
-  function extractBatches() {
-    const candidates = getCandidates();
-    const bestByBatch = new Map();
-
-    for (const candidate of candidates) {
-      const text = candidate.text;
-      const batchMatch = text.match(BATCH_RE);
-      const amountMatch = text.match(AMOUNT_RE);
-
-      if (!batchMatch || !amountMatch) continue;
-
       const batch = batchMatch[0];
-
       const amount = Number(
-        amountMatch[0]
-          .replace("$", "")
-          .replace(/,/g, "")
-          .trim()
+        amountMatch[0].replace(/[$,\s]/g, "")
       );
 
-      const completedDate = parseDate(
-        text,
-        "Completed"
-      );
+      const completedDate = parseDate(text, "Completed");
+      const deliveredDate = parseDate(text, "Delivered");
+      const payByDate = parseDate(text, "Pay by");
 
-      const deliveredDate = parseDate(
-        text,
-        "Delivered"
-      );
-
-      const payByDate = parseDate(
-        text,
-        "Pay by"
-      );
-
-      if (
-        !Number.isFinite(amount) ||
-        !deliveredDate
-      ) {
+      if (!Number.isFinite(amount) || !deliveredDate) {
         continue;
       }
 
@@ -210,63 +162,62 @@
         amount,
         completedDate,
         deliveredDate,
-        payByDate,
-        scannedAt: new Date().toISOString()
+        payByDate
       };
 
-      const previous = bestByBatch.get(batch);
+      const previous = best.get(batch);
 
-      // Keep the smallest matching text containing
-      // a complete batch record.
-      if (
-        !previous ||
-        text.length < previous._textLength
-      ) {
-        bestByBatch.set(batch, {
+      // Prefer the smallest matching element that contains
+      // the entire batch record, reducing duplicate matches.
+      if (!previous || text.length < previous.textLength) {
+        best.set(batch, {
           ...record,
-          _textLength: text.length
+          textLength: text.length
         });
       }
     }
 
-    return Array.from(bestByBatch.values()).map(
-      record => {
-        delete record._textLength;
-        return record;
-      }
-    );
+    return {
+      sectionFound: true,
+      batches: Array.from(best.values()).map(item => {
+        delete item.textLength;
+        return item;
+      })
+    };
   }
 
   async function scan() {
     try {
-      const batches = extractBatches();
+      const result = extractBatches();
 
-      // Do not erase previously saved data when the page
-      // is loading or its payment section is temporarily absent.
-      if (!batches.length) return;
+      // Do not clear valid stored results when the section
+      // cannot be located during a page transition.
+      if (!result.sectionFound) return;
+
+      const batches = result.batches;
 
       const signature = JSON.stringify(
         batches
-          .map(batch => ({
-            batch: batch.batch,
-            amount: batch.amount,
-            completedDate: batch.completedDate,
-            deliveredDate: batch.deliveredDate,
-            payByDate: batch.payByDate
+          .map(b => ({
+            batch: b.batch,
+            amount: b.amount,
+            completedDate: b.completedDate,
+            deliveredDate: b.deliveredDate,
+            payByDate: b.payByDate
           }))
-          .sort((a, b) =>
-            a.batch.localeCompare(b.batch)
-          )
+          .sort((a, b) => a.batch.localeCompare(b.batch))
       );
 
       if (signature === lastSignature) return;
-
       lastSignature = signature;
 
       const payload = {
         batches,
         source: location.href,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        scanStatus: batches.length
+          ? "success"
+          : "empty"
       };
 
       await chrome.storage.local.set({
@@ -274,26 +225,21 @@
       });
 
       console.info(
-        "[Avala Pay Tracker] Updated:",
+        "[Avala Pay Tracker] Scan complete:",
         batches.length,
         "upcoming batches"
       );
     } catch (error) {
-      console.error(
-        "[Avala Pay Tracker] Scan failed:",
-        error
-      );
+      console.error("[Avala Pay Tracker]", error);
     }
   }
 
   function scheduleScan() {
-    clearTimeout(scanTimer);
-    scanTimer = setTimeout(scan, 700);
+    clearTimeout(observerTimer);
+    observerTimer = setTimeout(scan, 800);
   }
 
-  const observer = new MutationObserver(() => {
-    scheduleScan();
-  });
+  const observer = new MutationObserver(scheduleScan);
 
   observer.observe(document.documentElement, {
     childList: true,
@@ -301,14 +247,17 @@
     characterData: true
   });
 
-  setInterval(scan, SCAN_INTERVAL);
+  timer = setInterval(scan, SCAN_INTERVAL);
 
   scan();
 
-  document.addEventListener(
-    "visibilitychange",
-    () => {
-      if (!document.hidden) scan();
-    }
-  );
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) scan();
+  });
+
+  window.addEventListener("pagehide", () => {
+    clearInterval(timer);
+    clearTimeout(observerTimer);
+    observer.disconnect();
+  });
 })();
